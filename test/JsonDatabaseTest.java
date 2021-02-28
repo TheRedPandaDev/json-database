@@ -1,4 +1,3 @@
-import org.hyperskill.hstest.dynamic.DynamicTest;
 import org.hyperskill.hstest.dynamic.input.DynamicTestingMethod;
 import org.hyperskill.hstest.stage.StageTest;
 import org.hyperskill.hstest.testcase.CheckResult;
@@ -6,126 +5,59 @@ import org.hyperskill.hstest.testing.TestedProgram;
 
 public class JsonDatabaseTest extends StageTest<String> {
 
-    private static final String OK_STATUS = "OK";
-    private static final String ERROR_STATUS = "ERROR";
+    private static final String CORRECT_SERVER_OUTPUT =
+        "Server started!\n" +
+            "Received: Give me a record # N\n" +
+            "Sent: A record # N was sent!";
 
-    private static final String WRONG_EXIT = "The program should stop when 'exit' was entered.";
-    private static final String WRONG_GET_EMPTY_CELL_WITH_ERROR = "When a user tries to get an empty" +
-            " cell from the database you should print '" + ERROR_STATUS + "'.";
-    private static final String WRONG_SET_VALUE_TO_CELL_WITH_OK = "When a user tries to set a value to" +
-            " a cell you should save the value and print '" + OK_STATUS + "'.";
-    private static final String WRONG_GET_VALUE = "When a user tries to get a not empty cell you program prints " +
-            "wrong value.\nMay be the problem is in processing 'set' action:\nIf the specified cell already contains " +
-            "information, you should simply rewrite it.";
-    private static final String WRONG_DELETE = "When a user tries to delete a value from the cell you should assign " +
-            "an empty string to this cell and print 'OK'.";
-    private static final String WRONG_DELETE_EMPTY = "When a user tries to delete a cell with an empty value" +
-            " you should assign an empty string to this cell and print 'OK'.";
-    private static final String WRONG_DELETE_INDEX_OUT_OF_BOUNDS = "When a user tries to delete a cell which index " +
-            "is less than 0 or greater than 100 you should print 'ERROR'.";
-
-
-    @DynamicTest()
-    CheckResult checkExit() {
-
-        System.out.println("Here");
-
-        TestedProgram program = new TestedProgram("server");
-        program.start();
-        program.execute("exit");
-
-        if (!program.isFinished()) {
-            return CheckResult.wrong(WRONG_EXIT);
-        }
-
-        return CheckResult.correct();
-    }
+    private static final String CORRECT_CLIENT_OUTPUT =
+        "Client started!\n" +
+            "Sent: Give me a record # N\n" +
+            "Received: A record # N was sent!";
 
     @DynamicTestingMethod
-    CheckResult testInputs() {
+    CheckResult test() throws InterruptedException {
 
-        TestedProgram program = new TestedProgram("server");
-        program.start();
+        TestedProgram server = new TestedProgram("server");
+        server.startInBackground();
+        Thread.sleep(500);
 
-        String output;
-        String expectedValue;
+        String serverOutput = server.getOutput().trim();
 
-        output = program.execute("get 1");
-        if (!output.toUpperCase().contains(ERROR_STATUS)) {
-            return CheckResult.wrong(WRONG_GET_EMPTY_CELL_WITH_ERROR);
+        if (!serverOutput.trim().equals("Server started!")) {
+            return CheckResult.wrong("Server output should be 'Server started!' until a client connects!");
         }
 
-        output = program.execute("set 1 Hello world!");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_SET_VALUE_TO_CELL_WITH_OK);
+        TestedProgram client = new TestedProgram("client");
+
+        String clientOutput = client.start();
+        serverOutput += "\n" + server.getOutput();
+
+        String[] serverOutputLines = serverOutput.split("\n");
+
+        if (serverOutputLines.length != 3) {
+            return CheckResult.wrong("After the client connects to the server, the server output should contain 3 lines!");
         }
 
-        output = program.execute("set 1 HelloWorld!");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_SET_VALUE_TO_CELL_WITH_OK);
+        String serverOutputLastLine = serverOutputLines[serverOutputLines.length - 1];
+
+        if (!serverOutputLastLine.contains("Sent: A record #") || !serverOutputLastLine.contains("was sent!")) {
+            return CheckResult.wrong("Server output after client connects to the server should be:\n"
+                + CORRECT_SERVER_OUTPUT + "\n\nWhere N is some number.\n\nYour output:\n" + serverOutput);
         }
 
-        output = program.execute("get 1");
-        expectedValue = "HelloWorld!";
-        if (!output.contains(expectedValue)) {
-            return CheckResult.wrong(WRONG_GET_VALUE +
-                    "\nExpected:\n" + expectedValue + "\nYour output:\n" + output);
+        String[] clientOutputLines = clientOutput.split("\n");
+
+        if (clientOutputLines.length != 3) {
+            return CheckResult.wrong("After the client connects to the server, the client output should contain 3 lines!");
         }
 
-        output = program.execute("delete 1");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_DELETE);
-        }
+        String clientOutputLastLine = clientOutputLines[clientOutputLines.length - 1];
 
-        output = program.execute("delete 1");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_DELETE_EMPTY);
+        if (!clientOutputLastLine.contains("Received: A record #") || !clientOutputLastLine.contains("was sent!")) {
+            return CheckResult.wrong("Client output after client connects to the server should be:\n"
+                + CORRECT_CLIENT_OUTPUT + "\n\nWhere N is some number.\n\nYour output:\n" + clientOutput);
         }
-
-        output = program.execute("get 1");
-        if (!output.toUpperCase().contains(ERROR_STATUS)) {
-            return CheckResult.wrong(WRONG_GET_EMPTY_CELL_WITH_ERROR + "\nMay be after deleting a cell you didn't " +
-                    "assign an empty value to it.");
-        }
-
-        output = program.execute("set 55 Some text here");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_SET_VALUE_TO_CELL_WITH_OK);
-        }
-
-        output = program.execute("get 55");
-        expectedValue = "Some text here";
-        if (!output.contains(expectedValue)) {
-            return CheckResult.wrong(WRONG_GET_VALUE +
-                    "\nExpected:\n" + expectedValue + "\nYour output:\n" + output);
-        }
-
-        output = program.execute("get 56");
-        if (!output.toUpperCase().contains(ERROR_STATUS)) {
-            return CheckResult.wrong(WRONG_GET_EMPTY_CELL_WITH_ERROR);
-        }
-
-        output = program.execute("delete 55");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_DELETE);
-        }
-
-        output = program.execute("delete 56");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_DELETE_EMPTY);
-        }
-
-        output = program.execute("delete 100");
-        if (!output.toUpperCase().contains(OK_STATUS)) {
-            return CheckResult.wrong(WRONG_DELETE_EMPTY);
-        }
-
-        output = program.execute("delete 101");
-        if (!output.toUpperCase().contains(ERROR_STATUS)) {
-            return CheckResult.wrong(WRONG_DELETE_INDEX_OUT_OF_BOUNDS);
-        }
-
-        program.execute("exit");
 
         return CheckResult.correct();
     }
