@@ -5,126 +5,120 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.Scanner;
 
 public class Main {
 
-    private static final String[] database = new String[100];
     private static final int PORT = 34522;
+    private static final Database database = new Database();
+    private static final Controller controller = new Controller();
+    private static final WorkingToggle workingToggle = new WorkingToggle();
 
     public static void main(String[] args) {
-//        Arrays.fill(database, "");
-//        Scanner scanner = new Scanner(System.in);
-//        String[] input = new String[3];
-//        input[0] = scanner.next();
-//        while (!"exit".equals(input[0])) {
-//            input[1] = scanner.next();
-//            if ("set".equals(input[0])) {
-//                input[2] = scanner.nextLine().trim();
-//            }
-//            parseInput(input);
-//            input[0] = scanner.next();
-//        }
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("Server started!");
-            Session session = new Session(serverSocket.accept());
-            session.start();
-        } catch (IOException e) {
+            while (workingToggle.isWorking()) {
+                Session session = new Session(serverSocket.accept());
+                session.start();
+                session.join(); // Temporary measure for exiting
+            }
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    private static void parseInput(String[] input) {
-        if (("set".equals(input[0])) && (isInteger(input[1]))) {
-            try {
-                setCell(Integer.parseInt(input[1]) - 1, input[2]);
-                System.out.println("OK");
-            } catch (ArrayIndexOutOfBoundsException e) {
-                System.out.println("ERROR");
-            }
-        } else if (("get".equals(input[0])) && (isInteger(input[1]))) {
-            try {
-                System.out.println(getCell(Integer.parseInt(input[1]) - 1));
-            } catch (ArrayIndexOutOfBoundsException e) {
-                System.out.println("ERROR");
-            }
-        } else if (("delete".equals(input[0])) && (isInteger(input[1]))) {
-            try {
-                deleteCell(Integer.parseInt(input[1]) - 1);
-                System.out.println("OK");
-            } catch (ArrayIndexOutOfBoundsException e) {
-                System.out.println("ERROR");
-            }
-        } else {
-            System.out.println("ERROR");
-        }
-    }
+    static class Session extends Thread {
+        private final Socket socket;
 
-    public static boolean isInteger(String str) {
-        if (str == null) {
-            return false;
+        public Session(Socket socketForClient) {
+            super();
+            this.socket = socketForClient;
         }
-        int length = str.length();
-        if (length == 0) {
-            return false;
+
+        @Override
+        public void run() {
+            try (
+                    DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                    DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+            ) {
+                String msg = inputStream.readUTF();
+                System.out.println("Received: " + msg);
+                String[] input;
+                if ("set".equals(msg.substring(0, 3))) {
+                    input = new String[3];
+                    input[0] = "set";
+                    String secondPart = msg.substring(msg.indexOf(" ") + 1);
+                    input[1] = secondPart.substring(0, secondPart.indexOf(" "));
+                    input[2] = secondPart.substring(secondPart.indexOf(" ") + 1);
+                } else {
+                    input = msg.split(" ");
+                }
+                Command command = parseInput(input);
+                synchronized (controller) {
+                    controller.setCommand(command);
+                    controller.executeCommand();
+                }
+                String msgOut = command.getResult();
+                outputStream.writeUTF(msgOut);
+                System.out.println("Sent: " + msgOut);
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-        int i = 0;
-        if (str.charAt(0) == '-') {
-            if (length == 1) {
+
+        public Command parseInput(String[] input) {
+            if ("exit".equals(input[0])) {
+                return new ExitCommand(workingToggle);
+            } else if (("set".equals(input[0])) && (isInteger(input[1]))) {
+                return new SetCommand(database, Integer.parseInt(input[1]) - 1, input[2]);
+            } else if (("get".equals(input[0])) && (isInteger(input[1]))) {
+                return new GetCommand(database, Integer.parseInt(input[1]) - 1);
+            } else if (("delete".equals(input[0])) && (isInteger(input[1]))) {
+                return new DeleteCommand(database, Integer.parseInt(input[1]) - 1);
+            }
+            return null;
+        }
+
+        private static boolean isInteger(String str) {
+            if (str == null) {
                 return false;
             }
-            i = 1;
-        }
-        for (; i < length; i++) {
-            char c = str.charAt(i);
-            if (c < '0' || c > '9') {
+            int length = str.length();
+            if (length == 0) {
                 return false;
             }
-        }
-        return true;
-    }
-
-    private static void setCell(int cellNum, String text) throws ArrayIndexOutOfBoundsException {
-        database[cellNum] = text;
-    }
-
-    private static String getCell(int cellNum) throws ArrayIndexOutOfBoundsException {
-        if ("".equals(database[cellNum])) {
-            throw new ArrayIndexOutOfBoundsException();
-        }
-        return database[cellNum];
-    }
-
-    private static void deleteCell(int cellNum) throws ArrayIndexOutOfBoundsException {
-        database[cellNum] = "";
-    }
-
-}
-
-class Session extends Thread {
-    private final Socket socket;
-
-    public Session(Socket socketForClient) {
-        super();
-        this.socket = socketForClient;
-    }
-
-    @Override
-    public void run() {
-        try (
-                DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-                DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
-                ) {
-            String msg = inputStream.readUTF();
-            System.out.println("Received: " + msg);
-            int recordNum = Integer.parseInt(msg.split(" # ")[1]);
-            String msgOut = "A record # " + recordNum + " was sent!";
-            outputStream.writeUTF(msgOut);
-            System.out.println("Sent: " + msgOut);
-            socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            int i = 0;
+            if (str.charAt(0) == '-') {
+                if (length == 1) {
+                    return false;
+                }
+                i = 1;
+            }
+            for (; i < length; i++) {
+                char c = str.charAt(i);
+                if (c < '0' || c > '9') {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
+
+class WorkingToggle {
+    private boolean working;
+
+    public WorkingToggle() {
+        this.working = true;
+    }
+
+    public void stopWorking() {
+        this.working = false;
+    }
+
+    public boolean isWorking() {
+        return working;
+    }
+}
+
+
