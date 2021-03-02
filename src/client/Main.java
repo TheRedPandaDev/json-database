@@ -1,10 +1,11 @@
 package client;
 
+import com.beust.jcommander.JCommander;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class Main {
 
@@ -18,16 +19,26 @@ public class Main {
                 DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                 DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
                 ) {
-//            Scanner scanner = new Scanner(System.in);
-//            String msg = scanner.nextLine();
-            String msg = "Give me a record # 12";
+            CommandArgs commandArgs = new CommandArgs();
+            JCommander jCommander = JCommander.newBuilder()
+                    .addObject(commandArgs)
+                    .build();
+            jCommander.parse(args);
+
+            String msg;
+
+            if ("set".equals(commandArgs.getRequestType())) {
+                msg = "set " + commandArgs.getCellIndex() + " " + commandArgs.getInputValue();
+            } else if ("exit".equals(commandArgs.getRequestType())) {
+                msg = "exit";
+            } else {
+                msg = commandArgs.getRequestType() + " " + commandArgs.getCellIndex();
+            }
 
             outputStream.writeUTF(msg);
-
             System.out.println("Sent: " + msg);
 
             String receivedMsg = inputStream.readUTF();
-
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {
             e.printStackTrace();
