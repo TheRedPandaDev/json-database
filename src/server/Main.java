@@ -1,5 +1,8 @@
 package server;
 
+import com.google.gson.Gson;
+import server.commands.*;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -40,24 +43,18 @@ public class Main {
                     DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                     DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
             ) {
-                String msg = inputStream.readUTF();
-                System.out.println("Received: " + msg);
-                String[] input;
-                if ("set".equals(msg.substring(0, 3))) {
-                    input = new String[3];
-                    input[0] = "set";
-                    String secondPart = msg.substring(msg.indexOf(" ") + 1);
-                    input[1] = secondPart.substring(0, secondPart.indexOf(" "));
-                    input[2] = secondPart.substring(secondPart.indexOf(" ") + 1);
-                } else {
-                    input = msg.split(" ");
-                }
-                Command command = parseInput(input);
+                String receivedMsg = inputStream.readUTF();
+                System.out.println("Received: " + receivedMsg);
+                Gson gson = new Gson();
+                CommandArgs commandArgs = gson.fromJson(receivedMsg, CommandArgs.class);
+                Command command = parseInput(commandArgs);
+                Result result;
                 synchronized (controller) {
                     controller.setCommand(command);
                     controller.executeCommand();
+                    result = controller.getCommandResult();
                 }
-                String msgOut = command.getResult();
+                String msgOut = gson.toJson(result);
                 outputStream.writeUTF(msgOut);
                 System.out.println("Sent: " + msgOut);
                 socket.close();
@@ -66,59 +63,17 @@ public class Main {
             }
         }
 
-        public Command parseInput(String[] input) {
-            if ("exit".equals(input[0])) {
+        public Command parseInput(CommandArgs commandArgs) {
+            if ("exit".equals(commandArgs.getType())) {
                 return new ExitCommand(workingToggle);
-            } else if (("set".equals(input[0])) && (isInteger(input[1]))) {
-                return new SetCommand(database, Integer.parseInt(input[1]) - 1, input[2]);
-            } else if (("get".equals(input[0])) && (isInteger(input[1]))) {
-                return new GetCommand(database, Integer.parseInt(input[1]) - 1);
-            } else if (("delete".equals(input[0])) && (isInteger(input[1]))) {
-                return new DeleteCommand(database, Integer.parseInt(input[1]) - 1);
+            } else if (("set".equals(commandArgs.getType()))) {
+                return new SetCommand(database, commandArgs.getKey(), commandArgs.getValue());
+            } else if (("get".equals(commandArgs.getType()))) {
+                return new GetCommand(database, commandArgs.getKey());
+            } else if (("delete".equals(commandArgs.getType()))) {
+                return new DeleteCommand(database, commandArgs.getKey());
             }
             return null;
         }
-
-        private static boolean isInteger(String str) {
-            if (str == null) {
-                return false;
-            }
-            int length = str.length();
-            if (length == 0) {
-                return false;
-            }
-            int i = 0;
-            if (str.charAt(0) == '-') {
-                if (length == 1) {
-                    return false;
-                }
-                i = 1;
-            }
-            for (; i < length; i++) {
-                char c = str.charAt(i);
-                if (c < '0' || c > '9') {
-                    return false;
-                }
-            }
-            return true;
-        }
     }
 }
-
-class WorkingToggle {
-    private boolean working;
-
-    public WorkingToggle() {
-        this.working = true;
-    }
-
-    public void stopWorking() {
-        this.working = false;
-    }
-
-    public boolean isWorking() {
-        return working;
-    }
-}
-
-

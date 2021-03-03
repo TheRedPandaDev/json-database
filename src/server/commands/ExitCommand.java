@@ -1,7 +1,10 @@
-package server;
+package server.commands;
+
+import server.WorkingToggle;
 
 public class ExitCommand implements Command {
     WorkingToggle workingToggle;
+    Result result;
 
     public ExitCommand(WorkingToggle workingToggle) {
         this.workingToggle = workingToggle;
@@ -10,10 +13,11 @@ public class ExitCommand implements Command {
     @Override
     public void execute() {
         workingToggle.stopWorking();
+        result = new Result("OK");
     }
 
     @Override
-    public String getResult() {
-        return "OK";
+    public Result getResult() {
+        return result;
     }
 }

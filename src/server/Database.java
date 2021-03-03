@@ -1,27 +1,31 @@
 package server;
 
-import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class Database {
-    private final String[] databaseArray;
+    private final Map<String, String> databaseMap;
 
     public Database() {
-        this.databaseArray = new String[1000];
-        Arrays.fill(databaseArray, "");
+        databaseMap = new TreeMap<>();
     }
 
-    public void setCell(int cellNum, String text) throws ArrayIndexOutOfBoundsException {
-        databaseArray[cellNum] = text;
+    public void setCell(String key, String value) throws IllegalArgumentException, NullPointerException {
+        databaseMap.put(key, value);
     }
 
-    public String getCell(int cellNum) throws ArrayIndexOutOfBoundsException {
-        if ("".equals(databaseArray[cellNum])) {
-            throw new ArrayIndexOutOfBoundsException();
+    public String getCell(String key) throws IllegalArgumentException, NullPointerException {
+        String value = databaseMap.get(key);
+        if (value == null) {
+            throw new IllegalArgumentException("No such key");
         }
-        return databaseArray[cellNum];
+        return value;
     }
 
-    public void deleteCell(int cellNum) throws ArrayIndexOutOfBoundsException {
-        databaseArray[cellNum] = "";
+    public void deleteCell(String key) throws IllegalArgumentException, NullPointerException {
+        String value = databaseMap.remove(key);
+        if (value == null) {
+            throw new IllegalArgumentException("No such key");
+        }
     }
 }

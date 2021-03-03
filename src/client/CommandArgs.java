@@ -11,39 +11,27 @@ public class CommandArgs {
             required = true,
             validateValueWith = ValidCommand.class
     )
-    private String requestType;
+    private String type;
 
     @Parameter(
-            names = "-i",
+            names = "-k",
             description = "Cell index"
 //            validateValueWith = RequiredWhenNotExit.class
     )
-    private int cellIndex;
+    private String key;
 
     @Parameter(
-            names = "-m",
+            names = "-v",
             description = "Value to save in the database"
 //            validateValueWith = RequiredWhenSet.class
     )
-    private String inputValue;
+    private String value;
 
     @Parameter(
             names = "--help",
             help = true
     )
-    private boolean help;
-
-    public String getRequestType() {
-        return requestType;
-    }
-
-    public int getCellIndex() {
-        return cellIndex;
-    }
-
-    public String getInputValue() {
-        return inputValue;
-    }
+    private transient boolean help;
 
     public boolean isHelp() {
         return help;

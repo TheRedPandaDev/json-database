@@ -1,4 +1,4 @@
-package server;
+package server.commands;
 
 public class Controller {
     private Command command;
@@ -12,5 +12,9 @@ public class Controller {
 
     public void executeCommand() {
         command.execute();
+    }
+
+    public Result getCommandResult() {
+        return command.getResult();
     }
 }

@@ -1,6 +1,6 @@
-package server;
+package server.commands;
 
 public interface Command {
     void execute();
-    String getResult();
+    Result getResult();
 }
