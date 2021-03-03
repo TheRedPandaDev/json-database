@@ -1,3 +1,3 @@
-# JSON Database server on sockets
+# JSON Database server
  
 <em>Currently in development</em>
