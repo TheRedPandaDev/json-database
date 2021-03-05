@@ -6,10 +6,16 @@ import com.beust.jcommander.ParameterException;
 
 public class CommandArgs {
     @Parameter(
+            names = "-in",
+            description = "Request file name"
+    )
+    private transient String fileName;
+
+    @Parameter(
             names = "-t",
-            description = "Request type",
-            required = true,
-            validateValueWith = ValidCommand.class
+            description = "Request type"
+//            required = true,
+//            validateValueWith = ValidCommand.class
     )
     private String type;
 
@@ -37,15 +43,19 @@ public class CommandArgs {
         return help;
     }
 
-    public static class ValidCommand implements IValueValidator<String> {
-        @Override
-        public void validate(String name, String value) throws ParameterException {
-            if (!(value.equals("get") || value.equals("set") || value.equals("delete") || value.equals("exit"))) {
-                throw new ParameterException("Parameter " + name + " does not correspond to a valid command");
-            }
-        }
+    public String getFileName() {
+        return fileName;
     }
 
+    //    public static class ValidCommand implements IValueValidator<String> {
+//        @Override
+//        public void validate(String name, String value) throws ParameterException {
+//            if (!(value.equals("get") || value.equals("set") || value.equals("delete") || value.equals("exit"))) {
+//                throw new ParameterException("Parameter " + name + " does not correspond to a valid command");
+//            }
+//        }
+//    }
+//
 //    public static class RequiredWhenSet implements IValueValidator<String> {
 //        @Override
 //        public void validate(String name, String value) throws ParameterException {
