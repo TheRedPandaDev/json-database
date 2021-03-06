@@ -1,3 +1,3 @@
 # JSON Database server
  
-<em>Currently in development</em>
+A concurrent database server based on a single JSON file with the ability to store JSON objects (containing another JSON objects, and so on) and manipulate any individual nested value
