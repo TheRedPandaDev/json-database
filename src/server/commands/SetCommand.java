@@ -2,6 +2,8 @@ package server.commands;
 
 import server.Database;
 
+import java.io.IOException;
+
 public class SetCommand implements Command {
     private final Database database;
     private final String key;
@@ -19,7 +21,7 @@ public class SetCommand implements Command {
         try {
             database.setCell(key, value);
             result = new Result("OK");
-        } catch (IllegalArgumentException | NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException | IOException e) {
             result = new Result("ERROR", null, e.getMessage());
         }
 

@@ -22,4 +22,16 @@ public class Result {
         this.value = null;
         this.reason = null;
     }
+
+    public String getResponse() {
+        return response;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public String getReason() {
+        return reason;
+    }
 }
