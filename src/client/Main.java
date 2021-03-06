@@ -29,9 +29,15 @@ public class Main {
         String msgOut = null;
 
         if (commandArgs.getFileName() != null) {
+            StringBuilder msgOutBuilder = new StringBuilder();
             File requestFile = new File(pathToFile.concat(commandArgs.getFileName()));
             try (BufferedReader bufferedReader = new BufferedReader(new FileReader(requestFile))) {
-                msgOut = bufferedReader.readLine();
+                String input = bufferedReader.readLine();
+                while (input != null) {
+                    msgOutBuilder.append(input);
+                    input = bufferedReader.readLine();
+                }
+                msgOut = msgOutBuilder.toString();
             } catch (IOException e) {
                 e.printStackTrace();
             }
